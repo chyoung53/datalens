@@ -1,0 +1,282 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
+  --secondary: #6366f1;
+  --emerald: #10b981;
+  --amber: #f59e0b;
+  --rose: #ef4444;
+  --pink: #ec4899;
+
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;
+  --border: #e2e8f0;
+  --border-soft: #cbd5e1;
+
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #475569;
+  --text-faint: #64748b;
+  --text-placeholder: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: "DM Sans", sans-serif;
+  background-color: var(--bg);
+  color: var(--text-secondary);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: "Syne", sans-serif;
+  color: var(--text-primary);
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-soft);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-placeholder);
+}
+
+/* ─── Card ─── */
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+
+.card-soft {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+
+/* ─── Gradient Badge ─── */
+.step-tag {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "DM Mono", monospace;
+  background: rgba(14, 165, 233, 0.1);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  letter-spacing: 0.05em;
+}
+
+/* ─── Inputs ─── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  background: #fff;
+  color: var(--text-secondary);
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12);
+}
+
+/* ─── Buttons ─── */
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  font-family: "Syne", sans-serif;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, opacity 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+}
+
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-secondary {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-family: "DM Sans", sans-serif;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 22px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+/* ─── Table ─── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: "DM Mono", monospace;
+}
+
+.data-table th {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font-family: "DM Sans", sans-serif;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tr:hover td {
+  background: #f0f9ff;
+}
+
+/* ─── Insight Card ─── */
+.insight-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 10px;
+}
+
+.insight-card.top {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.07),
+    rgba(99, 102, 241, 0.05)
+  );
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+
+/* ─── KPI Card ─── */
+.kpi-card {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  text-align: center;
+}
+
+/* ─── Summary Box ─── */
+.summary-box {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.07),
+    rgba(99, 102, 241, 0.05)
+  );
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+/* ─── Warn Box ─── */
+.warn-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+/* ─── Spinner ─── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(14, 165, 233, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ─── User Badge ─── */
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 20px;
+  padding: 4px 13px;
+  font-size: 12px;
+  color: #0284c7;
+  font-weight: 600;
+}
