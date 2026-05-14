@@ -44,8 +44,7 @@ export default function AuthPage() {
     if (error) {
       setMsg({ type: "error", text: "이메일 또는 비밀번호가 올바르지 않습니다." });
     } else {
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     }
     setLoading(false);
   }
