@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { detectType, colStats, colValues } from "@/lib/dataUtils";
-import type { StepProps, ColTypeEnum } from "@/types";
+import type { StepProps, ColTypeEnum, ColStats } from "@/types";
 
 const TYPE_COLOR: Record<ColTypeEnum, string> = {
   numeric: "#0ea5e9",
@@ -19,7 +19,7 @@ export default function Step1DataCheck({ state, onUpdate, onNext, onBack }: Step
     if (!dfRaw || Object.keys(state.colTypes).length > 0) return;
 
     const colTypes: Record<string, ColTypeEnum> = {};
-    const colStatsMap: Record<string, ReturnType<typeof colStats>> = {};
+    const colStatsMap: Record<string, ColStats> = {};
 
     columns.forEach((col) => {
       const vals = colValues(dfRaw, col);
