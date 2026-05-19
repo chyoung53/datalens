@@ -142,68 +142,7 @@ export default function Sidebar({
 
         <div style={{ height: 1, background: "#e2e8f0", marginBottom: 16 }} />
 
-        {/* API Key Section */}
-        {!collapsed && (
-          <>
-            <div style={{ fontSize: 13, fontFamily: "Syne,sans-serif", fontWeight: 800, color: "#0284c7", marginBottom: 10 }}>
-              ⚙️ 설정
-            </div>
-            <div style={{
-              background: "#f0f9ff", border: "1px solid rgba(14,165,233,0.3)",
-              borderRadius: 10, padding: "12px 14px", marginBottom: 10,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <Key size={12} color="#0284c7" />
-                <span style={{ fontSize: 10, color: "#0284c7", fontFamily: "DM Mono,monospace", letterSpacing: ".08em" }}>GEMINI API KEY</span>
-              </div>
-              <p style={{ fontSize: 11, color: "#64748b", lineHeight: 1.6, margin: "0 0 8px" }}>
-                Google AI Studio에서 발급받은 키를 입력하세요.{" "}
-                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer"
-                  style={{ color: "#0284c7", fontSize: 10 }}>→ 키 발급받기</a>
-              </p>
-              <input
-                type="password"
-                placeholder="AIza..."
-                value={apiKey}
-                onChange={(e) => { onApiKeyChange(e.target.value); onApiVerified(false); setTestMsg(null); }}
-                style={{ fontSize: 12, padding: "7px 10px", marginBottom: 8 }}
-              />
-              {apiKey && !apiVerified && (
-                <button
-                  onClick={testApiKey}
-                  disabled={testLoading}
-                  className="btn-primary"
-                  style={{ fontSize: 12, padding: "6px 14px", width: "100%", justifyContent: "center" }}
-                >
-                  {testLoading ? <><span className="spinner" style={{ width: 13, height: 13 }} /> 테스트 중...</> : "🔗 연결 테스트"}
-                </button>
-              )}
-              {testMsg && (
-                <div style={{ fontSize: 11, marginTop: 6, color: testMsg.ok ? "#065f46" : "#b91c1c" }}>
-                  {testMsg.text}
-                </div>
-              )}
-              {apiVerified && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 6, marginTop: 6,
-                  background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)",
-                  borderRadius: 8, padding: "6px 10px",
-                }}>
-                  <CheckCircle size={13} color="#10b981" />
-                  <span style={{ fontSize: 11, color: "#065f46", fontWeight: 600 }}>API 키 연결됨</span>
-                </div>
-              )}
-              {!apiKey && (
-                <div style={{
-                  display: "flex", alignItems: "center", gap: 6, marginTop: 4,
-                  background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)",
-                  borderRadius: 8, padding: "6px 10px",
-                }}>
-                  <AlertCircle size={13} color="#f59e0b" />
-                  <span style={{ fontSize: 11, color: "#92400e" }}>키 입력 시 AI 분석 활성화</span>
-                </div>
-              )}
-            </div>
+        
 
             {/* New Analysis */}
             <button
