@@ -64,7 +64,7 @@ export default function Sidebar({
   return (
     <aside
       style={{
-        width: collapsed ? 56 : 260,
+        width: collapsed ? 56 : 220,
         minHeight: "100vh",
         background: "#f8fafc",
         borderRight: "1px solid #e2e8f0",
@@ -114,7 +114,7 @@ export default function Sidebar({
             borderRadius: 12, padding: "11px 14px", marginBottom: 14,
           }}>
             <div style={{ fontSize: 9, color: "#0284c7", fontFamily: "DM Mono,monospace", letterSpacing: ".08em", marginBottom: 4 }}>👤 로그인된 계정</div>
-            <div style={{ fontFamily: "Syne,sans-serif", fontWeight: 800, fontSize: 15, color: "#0f172a", marginBottom: 2 }}>{nickname}</div>
+            <div style={{ fontFamily: "DM Sans,sans-serif", fontWeight: 700, fontSize: 15, color: "#0f172a", marginBottom: 2 }}>{nickname}</div>
             <div style={{ fontSize: 10, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{email}</div>
           </div>
         )}
