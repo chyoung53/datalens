@@ -2,10 +2,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
 const MODELS = [
-  "gemini-2.5-flash-preview-05-20",
   "gemini-2.0-flash",
   "gemini-2.0-flash-lite",
-  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-pro",
 ];
 
 export async function POST(req: NextRequest) {
