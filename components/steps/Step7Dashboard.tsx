@@ -18,7 +18,7 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
   const catCols = Object.entries(state.colTypes).filter(([, t]) => t === "categorical").map(([c]) => c);
 
   async function runDashboard() {
-    if (!state.geminiApiKey || !state.edaResult) return;
+    if (!state.edaResult) return;
     setLoading(true);
     setError("");
 

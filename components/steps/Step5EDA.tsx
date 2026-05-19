@@ -14,7 +14,7 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
   const catCols = Object.entries(state.colTypes).filter(([, t]) => t === "categorical").map(([c]) => c);
 
   async function runEDA() {
-    if (!state.dfClean || !state.geminiApiKey) return;
+    if (!state.dfClean) return;
     setLoading(true);
     setError("");
 
