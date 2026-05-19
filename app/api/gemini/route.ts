@@ -1,25 +1,37 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
-
-const MODELS = ["gemini-2.5-flash-preview-05-20"];
-
 
 export async function POST(req: NextRequest) {
   try {
     const { systemPrompt, userMessage, maxTokens = 4096 } = await req.json();
     const apiKey = process.env.GEMINI_API_KEY!;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { text: systemPrompt + "\n\n" + userMessage }
+              ]
+            }
+          ],
+          generationConfig: { maxOutputTokens: maxTokens }
+        }),
+      }
+    );
 
-    const model = genAI.getGenerativeModel({
-      model: MODELS[0],
-      systemInstruction: systemPrompt,
-      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
-    });
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || "API 오류");
+    }
 
-    const result = await model.generateContent(userMessage);
-    const text = result.response.text();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
     return NextResponse.json({ text });
+
   } catch (e: unknown) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "오류" },
