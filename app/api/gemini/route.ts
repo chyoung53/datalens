@@ -10,8 +10,8 @@ const MODELS = [
 
 export async function POST(req: NextRequest) {
   try {
-    const { apiKey, systemPrompt, userMessage, maxTokens = 4096 } =
-      await req.json();
+    const { systemPrompt, userMessage, maxTokens = 4096 } = await req.json();
+const apiKey = process.env.GEMINI_API_KEY!;
 
     if (!apiKey) {
       return NextResponse.json(
