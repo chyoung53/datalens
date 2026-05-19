@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { LogOut, Key, CheckCircle, AlertCircle, ChevronLeft, ChevronRight, BarChart3 } from "lucide-react";
+import { LogOut, BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SidebarProps {
   nickname: string;
@@ -15,82 +15,43 @@ interface SidebarProps {
   onReset: () => void;
 }
 
-export default function Sidebar({
-  nickname,
-  email,
-  apiKey,
-  apiVerified,
-  onApiKeyChange,
-  onApiVerified,
-  onReset,
-}: SidebarProps) {
+export default function Sidebar({ nickname, email, onReset }: SidebarProps) {
   const router = useRouter();
   const supabase = createClient();
   const [collapsed, setCollapsed] = useState(false);
-  const [testLoading, setTestLoading] = useState(false);
-  const [testMsg, setTestMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/auth");
-    router.refresh();
-  }
-
-  async function testApiKey() {
-    setTestLoading(true);
-    setTestMsg(null);
-    try {
-      const res = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          apiKey,
-          systemPrompt: "You are a test assistant. Reply only with the word: OK",
-          userMessage: "test",
-          maxTokens: 10,
-        }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      onApiVerified(true);
-      setTestMsg({ ok: true, text: "✅ 연결 성공!" });
-    } catch (e) {
-      onApiVerified(false);
-      setTestMsg({ ok: false, text: "❌ 연결 실패: 키를 확인해 주세요." });
-    }
-    setTestLoading(false);
+    window.location.href = "/auth";
   }
 
   return (
-    <aside
-      style={{
-        width: collapsed ? 56 : 220,
-        minHeight: "100vh",
-        background: "#f8fafc",
-        borderRight: "1px solid #e2e8f0",
-        display: "flex",
-        flexDirection: "column",
-        transition: "width 0.25s cubic-bezier(.4,0,.2,1)",
-        overflow: "hidden",
-        flexShrink: 0,
-        position: "relative",
-      }}
-    >
+    <aside style={{
+      width: collapsed ? 56 : 220,
+      minHeight: "100vh",
+      background: "#f8fafc",
+      borderRight: "1px solid #e2e8f0",
+      display: "flex",
+      flexDirection: "column",
+      transition: "width 0.25s cubic-bezier(.4,0,.2,1)",
+      overflow: "hidden",
+      flexShrink: 0,
+      position: "relative",
+    }}>
       {/* Toggle */}
       <button
-  onClick={() => setCollapsed((c) => !c)}
-  title={collapsed ? "사이드바 열기" : "사이드바 닫기"}
-  style={{
-    position: "absolute", top: 16, right: 8, zIndex: 20,
-    width: 28, height: 28, borderRadius: "50%",
-    background: "#0ea5e9", color: "#fff",
-    border: "2px solid #fff",
-    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-    boxShadow: "0 2px 8px rgba(14,165,233,0.4)",
-  }}
->
-  {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-</button>
+        onClick={() => setCollapsed((c) => !c)}
+        style={{
+          position: "absolute", top: 16, right: 8, zIndex: 20,
+          width: 28, height: 28, borderRadius: "50%",
+          background: "#0ea5e9", color: "#fff",
+          border: "2px solid #fff",
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          boxShadow: "0 2px 8px rgba(14,165,233,0.4)",
+        }}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
 
       <div style={{ padding: collapsed ? "18px 12px" : "18px 18px", display: "flex", flexDirection: "column", gap: 0, flex: 1, overflowY: "auto" }}>
         {/* Logo */}
@@ -131,7 +92,6 @@ export default function Sidebar({
             borderRadius: 9, padding: collapsed ? "8px 10px" : "8px 14px",
             color: "#64748b", fontSize: 13, cursor: "pointer",
             marginBottom: 16, width: "100%",
-            transition: "background 0.15s",
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
           onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -142,36 +102,22 @@ export default function Sidebar({
 
         <div style={{ height: 1, background: "#e2e8f0", marginBottom: 16 }} />
 
-        
-
-            {/* New Analysis */}
-            <button
-              onClick={onReset}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, marginTop: "auto",
-                background: "transparent", border: "1px solid #e2e8f0",
-                borderRadius: 9, padding: "8px 14px", color: "#64748b",
-                fontSize: 13, cursor: "pointer", width: "100%",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f9ff")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            >
-              <BarChart3 size={15} color="#0ea5e9" />
-              <span>새 분석 시작</span>
-            </button>
-          </>
-        )}
-
-        {/* Collapsed icons */}
-        {collapsed && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-            <div title={apiVerified ? "API 연결됨" : "API 키 필요"}>
-              {apiVerified
-                ? <CheckCircle size={18} color="#10b981" />
-                : <Key size={18} color="#f59e0b" />}
-            </div>
-          </div>
+        {/* New Analysis */}
+        {!collapsed && (
+          <button
+            onClick={onReset}
+            style={{
+              display: "flex", alignItems: "center", gap: 8, marginTop: "auto",
+              background: "transparent", border: "1px solid #e2e8f0",
+              borderRadius: 9, padding: "8px 14px", color: "#64748b",
+              fontSize: 13, cursor: "pointer", width: "100%",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f9ff")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            <BarChart3 size={15} color="#0ea5e9" />
+            <span>새 분석 시작</span>
+          </button>
         )}
       </div>
     </aside>
