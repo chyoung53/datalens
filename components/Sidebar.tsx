@@ -78,17 +78,19 @@ export default function Sidebar({
     >
       {/* Toggle */}
       <button
-        onClick={() => setCollapsed((c) => !c)}
-        style={{
-          position: "absolute", top: 16, right: -13, zIndex: 10,
-          width: 26, height: 26, borderRadius: "50%",
-          background: "#0ea5e9", color: "#fff", border: "none",
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 2px 8px rgba(14,165,233,0.3)",
-        }}
-      >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+  onClick={() => setCollapsed((c) => !c)}
+  title={collapsed ? "사이드바 열기" : "사이드바 닫기"}
+  style={{
+    position: "absolute", top: 16, right: -36, zIndex: 20,
+    width: 28, height: 28, borderRadius: "50%",
+    background: "#0ea5e9", color: "#fff",
+    border: "2px solid #fff",
+    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+    boxShadow: "0 2px 8px rgba(14,165,233,0.4)",
+  }}
+>
+  {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+</button>
 
       <div style={{ padding: collapsed ? "18px 12px" : "18px 18px", display: "flex", flexDirection: "column", gap: 0, flex: 1, overflowY: "auto" }}>
         {/* Logo */}
