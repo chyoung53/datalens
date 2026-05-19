@@ -11,9 +11,17 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userMessage }] }],
-          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 }
+          contents: [
+            {
+              parts: [
+                { text: `${systemPrompt}\n\n${userMessage}` }
+              ]
+            }
+          ],
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+            temperature: 0.3
+          }
         }),
       }
     );
