@@ -6,25 +6,20 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY!;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: systemPrompt + "\n\n" + userMessage }
-              ]
-            }
-          ],
-          generationConfig: { maxOutputTokens: maxTokens }
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userMessage }] }],
+          generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 }
         }),
       }
     );
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(data.error?.message || "API 오류");
     }
