@@ -271,20 +271,30 @@ function pearsonCorr(xs: number[], ys: number[]): number {
 
 // ─── CSV / Excel 파싱 ──────────────────────────────────────────────────────
 
-export async function parseFile(file: File): Promise<DataRow[]> {
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".csv")) {
-    return parseCSV(file);
-  } else if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
-    return parseExcel(file);
-  }
-  throw new Error("지원하지 않는 파일 형식입니다. CSV 또는 Excel(.xlsx/.xls) 파일을 업로드해 주세요.");
-}
-
 async function parseCSV(file: File): Promise<DataRow[]> {
   const Papa = (await import("papaparse")).default;
+
+  // 파일 바이너리 읽기
+  const buffer = await file.arrayBuffer();
+
+  let text = "";
+
+  // UTF-8 먼저 시도
+  try {
+    text = new TextDecoder("utf-8").decode(buffer);
+
+    // 깨짐 문자 감지
+    if (text.includes("���")) {
+      throw new Error("UTF-8 decode failed");
+    }
+  } catch {
+    // EUC-KR fallback
+    text = new TextDecoder("euc-kr").decode(buffer);
+  }
+
+
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
+    Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
@@ -293,7 +303,6 @@ async function parseCSV(file: File): Promise<DataRow[]> {
     });
   });
 }
-
 async function parseExcel(file: File): Promise<DataRow[]> {
   const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
