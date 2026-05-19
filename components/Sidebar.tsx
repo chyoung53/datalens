@@ -81,7 +81,7 @@ export default function Sidebar({
   onClick={() => setCollapsed((c) => !c)}
   title={collapsed ? "사이드바 열기" : "사이드바 닫기"}
   style={{
-    position: "absolute", top: 16, right: -36, zIndex: 20,
+    position: "absolute", top: 16, right: 8, zIndex: 20,
     width: 28, height: 28, borderRadius: "50%",
     background: "#0ea5e9", color: "#fff",
     border: "2px solid #fff",
