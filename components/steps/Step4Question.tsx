@@ -22,7 +22,7 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
       ).slice(0, 600) + "..."
     : "";
 
-  const canProceed = question.trim().length >= 10 && !!state.geminiApiKey;
+  const canProceed = question.trim().length >= 10;
 
   return (
     <div style={{ padding: "32px 28px", maxWidth: 800, margin: "0 auto" }}>
@@ -79,12 +79,7 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
         </div>
       </div>
 
-      {/* API Key Warning */}
-      {!state.geminiApiKey && (
-        <div className="warn-box" style={{ marginBottom: 20, fontSize: 13 }}>
-          ⚠️ Gemini API 키가 설정되지 않았습니다. 사이드바에서 키를 입력하면 AI 분석이 활성화됩니다.
-        </div>
-      )}
+  
 
       {/* Context Preview */}
       {ctxPreview && (
@@ -105,7 +100,7 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
       <div style={{ display: "flex", gap: 10 }}>
         <button className="btn-secondary" onClick={onBack}>← 이전</button>
         <button className="btn-primary" onClick={onNext} disabled={!canProceed}>
-          {canProceed ? "AI 분석 시작 →" : question.trim().length < 10 ? "질문을 입력해 주세요" : "API 키 필요"}
+          {question.trim().length < 10 ? "질문을 입력해 주세요" : "AI 분석 시작 →"}
         </button>
       </div>
     </div>
