@@ -1,7 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
-const MODELS = ["gemini-2.0-flash"];
+const MODELS = ["gemini-1.5-flash-002"];
+
 
 export async function POST(req: NextRequest) {
   try {
