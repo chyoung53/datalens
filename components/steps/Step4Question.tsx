@@ -22,7 +22,7 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
       ).slice(0, 600) + "..."
     : "";
 
-  const canProceed = question.trim().length >= 10;
+  const canProceed = question.trim().length >= 1;
 
   return (
     <div style={{ padding: "32px 28px", maxWidth: 800, margin: "0 auto" }}>
@@ -46,8 +46,8 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
           style={{ resize: "vertical", minHeight: 100, fontSize: 14 }}
         />
         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
-          {question.length}자 (최소 10자 이상)
-        </div>
+  {question.length}자
+</div>
       </div>
 
       {/* Examples */}
@@ -100,7 +100,7 @@ export default function Step4Question({ state, onUpdate, onNext, onBack }: StepP
       <div style={{ display: "flex", gap: 10 }}>
         <button className="btn-secondary" onClick={onBack}>← 이전</button>
         <button className="btn-primary" onClick={onNext} disabled={!canProceed}>
-          {question.trim().length < 10 ? "질문을 입력해 주세요" : "AI 분석 시작 →"}
+          {question.trim().length < 1 ? "질문을 입력해 주세요" : "AI 분석 시작 →"}
         </button>
       </div>
     </div>
