@@ -106,7 +106,13 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
 
   async function exportPDF() {
   if (!dash) return;
+  const el = document.getElementById("dashboard-result");
+  if (!el) return;
+  const original = document.body.innerHTML;
+  document.body.innerHTML = el.innerHTML;
   window.print();
+  document.body.innerHTML = original;
+  window.location.reload();
 }
 
   useEffect(() => {
@@ -134,7 +140,7 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
       {error && <div className="warn-box" style={{ marginBottom: 20, fontSize: 13 }}>⚠️ {error}</div>}
 
       {dash && (
-        <>
+  <div id="dashboard-result">
           {/* Executive Summary */}
           {dash.executiveSummary && (
             <div className="summary-box" style={{ marginBottom: 24 }}>
