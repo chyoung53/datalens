@@ -59,7 +59,7 @@ export default function Step1DataCheck({ state, onUpdate, onNext, onBack }: Step
           { label: "범주형", value: Object.values(state.colTypes).filter((t) => t === "categorical").length, color: "#f59e0b" },
         ].map((c) => (
           <div key={c.label} className="kpi-card" style={{ borderTop: `3px solid ${c.color}` }}>
-            <div style={{ fontSize: 9, color: "#64748b", fontFamily: "DM Mono,monospace", textTransform: "uppercase", letterSpacing: ".07em", marginBottom: 6 }}>{c.label}</div>
+            <div style={{ fontSize: 13, color: "#64748b", fontFamily: "DM Sans,sans-serif", fontWeight: 600, marginBottom: 6 }}>{c.label}</div>
             <div style={{ fontFamily: "Syne,sans-serif", fontSize: 24, fontWeight: 800, color: c.color }}>{c.value}</div>
           </div>
         ))}
