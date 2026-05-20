@@ -105,88 +105,9 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
   }
 
   async function exportPDF() {
-    if (!dash) return;
-    setPdfLoading(true);
-    try {
-      const { default: jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
-      const pageW = doc.internal.pageSize.getWidth();
-      const margin = 18;
-      const usable = pageW - margin * 2;
-      let y = 20;
-
-      const addLine = (text: string, size = 10, bold = false, color = "#1e293b") => {
-        doc.setFont("helvetica", bold ? "bold" : "normal");
-        doc.setFontSize(size);
-        const rgb = hexToRgb(color);
-        doc.setTextColor(rgb.r, rgb.g, rgb.b);
-        const lines = doc.splitTextToSize(text, usable);
-        lines.forEach((line: string) => {
-          if (y > 270) { doc.addPage(); y = 20; }
-          doc.text(line, margin, y);
-          y += size * 0.45;
-        });
-        y += 3;
-      };
-
-      const addSection = (title: string) => {
-        y += 4;
-        doc.setFillColor(14, 165, 233);
-        doc.rect(margin, y, usable, 0.5, "F");
-        y += 5;
-        addLine(title, 13, true, "#0f172a");
-      };
-
-      // Header
-      doc.setFillColor(14, 165, 233);
-      doc.rect(margin, y, usable, 1.5, "F");
-      y += 8;
-      addLine("DataLens AI — Business Dashboard Report", 18, true, "#0f172a");
-      addLine(new Date().toLocaleDateString("ko-KR"), 9, false, "#64748b");
-      addLine(`분석 질문: ${state.question}`, 10, false, "#475569");
-      y += 4;
-
-      if (dash.executiveSummary) {
-        addSection("Executive Summary");
-        addLine(dash.executiveSummary, 10);
-      }
-
-      if (dash.kpis.length) {
-        addSection("KPIs");
-        dash.kpis.forEach((k) => addLine(`• ${k.label}: ${k.value}  — ${k.note}`, 10));
-      }
-
-      if (dash.topInsights.length) {
-        addSection("핵심 비즈니스 인사이트");
-        dash.topInsights.forEach((ins) => {
-          addLine(`${ins.emoji} ${ins.title}`, 11, true, "#0f172a");
-          addLine(ins.finding, 10);
-          addLine(`임팩트: ${ins.impact}`, 9, false, "#64748b");
-          addLine(`실행: ${ins.action}`, 9, false, "#0284c7");
-          y += 2;
-        });
-      }
-
-      if (dash.risks.length) {
-        addSection("리스크");
-        dash.risks.forEach((r) => {
-          addLine(`[${r.severity.toUpperCase()}] ${r.risk}`, 10, true);
-          addLine(`대응: ${r.mitigation}`, 9, false, "#64748b");
-        });
-      }
-
-      if (dash.nextSteps.length) {
-        addSection("실행 로드맵");
-        const labels = ["이번 주", "1개월 내", "3개월 내"];
-        dash.nextSteps.forEach((s, i) => addLine(`[${labels[i] ?? ""}] ${s}`, 10));
-      }
-
-      doc.save(`datalens_report_${Date.now()}.pdf`);
-    } catch (e) {
-      alert("PDF 생성 실패: " + String(e));
-    }
-    setPdfLoading(false);
-  }
+  if (!dash) return;
+  window.print();
+}
 
   useEffect(() => {
     if (!dash) runDashboard();
