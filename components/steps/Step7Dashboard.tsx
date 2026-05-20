@@ -56,12 +56,12 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
         fetch("/api/gemini", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey: state.geminiApiKey, systemPrompt: sys1, userMessage: `${ctxMsg}\nexecutiveSummary와 topInsights 3개를 작성하세요.`, maxTokens: 2000 }),
+          body: JSON.stringify({ systemPrompt: sys1, userMessage: `${ctxMsg}\nexecutiveSummary와 topInsights 3개를 작성하세요.`, maxTokens: 3000 }),
         }),
         fetch("/api/gemini", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ apiKey: state.geminiApiKey, systemPrompt: sys2, userMessage: `${ctxMsg}\nkpis 3개, risks 2개, nextSteps 3개를 작성하세요.`, maxTokens: 1500 }),
+          body: JSON.stringify({ systemPrompt: sys2, userMessage: `${ctxMsg}\nkpis 3개, risks 2개, nextSteps 3개를 작성하세요.`, maxTokens: 2000 }),
         }),
       ]);
 
