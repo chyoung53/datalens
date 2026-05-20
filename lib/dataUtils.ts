@@ -273,25 +273,30 @@ function pearsonCorr(xs: number[], ys: number[]): number {
 
 async function parseCSV(file: File): Promise<DataRow[]> {
   const Papa = (await import("papaparse")).default;
-
-  // 파일 바이너리 읽기
   const buffer = await file.arrayBuffer();
-
+  
   let text = "";
-
+  
   // UTF-8 먼저 시도
   try {
-    text = new TextDecoder("utf-8").decode(buffer);
-
-    // 깨짐 문자 감지
-    if (text.includes("���")) {
+    text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    
+    // 한글 깨짐 감지
+    const hasKorean = /[\uAC00-\uD7A3]/.test(text);
+    const hasBroken = text.includes("�");
+    
+    if (hasBroken && !hasKorean) {
       throw new Error("UTF-8 decode failed");
     }
   } catch {
     // EUC-KR fallback
-    text = new TextDecoder("euc-kr").decode(buffer);
+    try {
+      text = new TextDecoder("euc-kr").decode(buffer);
+    } catch {
+      // CP949 fallback
+      text = new TextDecoder("windows-949").decode(buffer);
+    }
   }
-
 
   return new Promise((resolve, reject) => {
     Papa.parse(text, {
@@ -303,10 +308,14 @@ async function parseCSV(file: File): Promise<DataRow[]> {
     });
   });
 }
+
 async function parseExcel(file: File): Promise<DataRow[]> {
   const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: "array" });
+  const wb = XLSX.read(buffer, { 
+    type: "array",
+    codepage: 949  // EUC-KR/CP949 지원
+  });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   return XLSX.utils.sheet_to_json(sheet, { defval: null }) as DataRow[];
 }
