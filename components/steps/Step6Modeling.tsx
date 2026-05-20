@@ -5,7 +5,7 @@ import { buildContext, safeJSON } from "@/lib/dataUtils";
 import { FeatureBar } from "@/components/ChartRenderer";
 import type { StepProps, ModelResult } from "@/types";
 
-const MIN_ROWS = 50;
+const MIN_ROWS = 0;
 
 export default function Step6Modeling({ state, onUpdate, onNext, onBack }: StepProps) {
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export default function Step6Modeling({ state, onUpdate, onNext, onBack }: StepP
   const df = state.dfClean;
 
   async function runModeling() {
-    if (!df || !state.geminiApiKey) return;
+    if (!df) return;
     if (df.length < MIN_ROWS) return;
     setLoading(true);
     setError("");
@@ -67,7 +67,7 @@ export default function Step6Modeling({ state, onUpdate, onNext, onBack }: StepP
   }
 
   useEffect(() => {
-    if (!model && df && df.length >= MIN_ROWS) runModeling();
+    if (!model) runModeling();
   }, []);
 
   if (df && df.length < MIN_ROWS) {
