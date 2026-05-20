@@ -306,22 +306,50 @@ async function parseExcel(file: File): Promise<DataRow[]> {
 
 export function safeJSON(raw: string): Record<string, unknown> {
   if (!raw) throw new Error("빈 응답");
-  let s = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+  
+  // 마크다운 코드블록 제거
+  let s = raw
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+  
+  // JSON 시작점 찾기
   const start = s.indexOf("{");
   if (start === -1) throw new Error(`JSON 없음. 응답: ${raw.slice(0, 200)}`);
   s = s.slice(start);
+  
+  // JSON 끝점 찾기
   const end = s.lastIndexOf("}");
   if (end !== -1) s = s.slice(0, end + 1);
 
+  // 1차 파싱 시도
   try {
     return JSON.parse(s);
   } catch {
-    // trailing comma 제거
-    const fixed = s
-      .replace(/,\s*([}\]])/g, "$1")
-      .replace(/"([^"\n]*?)"\s*:\s*,/g, '"$1":"",')
-      .replace(/,\s*,/g, ",");
-    return JSON.parse(fixed);
+    // 2차: 일반적인 오류 수정
+    try {
+      const fixed = s
+        .replace(/,\s*([}\]])/g, "$1")
+        .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":')
+        .replace(/:\s*'([^']*)'/g, ': "$1"')
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
+      return JSON.parse(fixed);
+    } catch {
+      // 3차: 잘린 JSON 복구
+      try {
+        let truncated = s;
+        // 열린 배열/객체 닫기
+        const opens = (truncated.match(/\[/g) || []).length;
+        const closes = (truncated.match(/\]/g) || []).length;
+        for (let i = 0; i < opens - closes; i++) truncated += "]";
+        const objOpens = (truncated.match(/\{/g) || []).length;
+        const objCloses = (truncated.match(/\}/g) || []).length;
+        for (let i = 0; i < objOpens - objCloses; i++) truncated += "}";
+        return JSON.parse(truncated);
+      } catch {
+        throw new Error(`JSON 파싱 실패: ${s.slice(0, 200)}`);
+      }
+    }
   }
 }
 
