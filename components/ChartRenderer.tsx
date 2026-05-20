@@ -2,7 +2,7 @@
 
 import {
   BarChart, Bar, PieChart, Pie, Cell, ScatterChart, Scatter,
-  LineChart, Line, AreaChart, Area,
+  LineChart, Line, AreaChart, Area, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from "recharts";
@@ -119,26 +119,83 @@ export default function ChartRenderer({ config, data, height = 240 }: ChartRende
         );
       }
 
-      case "scatter": {
-        if (!yColumn || !data[0].hasOwnProperty(yColumn)) return null;
-        const chartData = data
-          .slice(0, 300)
-          .map((row) => ({ x: Number(row[xColumn]), y: Number(row[yColumn]) }))
-          .filter((d) => !isNaN(d.x) && !isNaN(d.y));
-        return (
-          <ChartWrapper title={title}>
-            <ResponsiveContainer width="100%" height={height}>
-              <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="x" name={xColumn} tick={{ fontSize: 10, fill: "#64748b" }} label={{ value: xColumn, position: "insideBottom", offset: -2, fontSize: 10 }} />
-                <YAxis dataKey="y" name={yColumn} tick={{ fontSize: 10, fill: "#64748b" }} />
-                <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
-                <Scatter data={chartData} fill={COLORS[0]} opacity={0.7} />
-              </ScatterChart>
-            </ResponsiveContainer>
-          </ChartWrapper>
-        );
-      }
+      // ✅ 새 코드 (교체)
+case "scatter": {
+  if (!yColumn || !data[0].hasOwnProperty(yColumn)) return null;
+
+  const chartData = data
+    .slice(0, 300)
+    .map((row) => ({ x: Number(row[xColumn]), y: Number(row[yColumn]) }))
+    .filter((d) => !isNaN(d.x) && !isNaN(d.y));
+
+  // ✅ 1. 회귀선 계산
+  const n = chartData.length;
+  const mx = chartData.reduce((s, d) => s + d.x, 0) / n;
+  const my = chartData.reduce((s, d) => s + d.y, 0) / n;
+  const slope =
+    chartData.reduce((s, d) => s + (d.x - mx) * (d.y - my), 0) /
+    chartData.reduce((s, d) => s + (d.x - mx) ** 2, 0);
+  const intercept = my - slope * mx;
+  const xMin = Math.min(...chartData.map((d) => d.x));
+  const xMax = Math.max(...chartData.map((d) => d.x));
+  const trendData = [
+    { x: xMin, y: Math.round((slope * xMin + intercept) * 100) / 100 },
+    { x: xMax, y: Math.round((slope * xMax + intercept) * 100) / 100 },
+  ];
+
+  // ✅ 2. X축 tick을 최대 8개로 제한하고 소수점 2자리 포맷
+  const xStep = parseFloat(((xMax - xMin) / 7).toFixed(3));
+  const xTicks = Array.from({ length: 8 }, (_, i) =>
+    Math.round((xMin + xStep * i) * 1000) / 1000
+  );
+
+  return (
+    <ChartWrapper title={title}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart margin={{ top: 4, right: 10, left: -10, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+
+          {/* ✅ 3. type="number" 로 수치형 강제 → 정렬 보장 */}
+          <XAxis
+            dataKey="x"
+            type="number"
+            name={xColumn}
+            domain={["auto", "auto"]}
+            ticks={xTicks}
+            tickFormatter={(v) => Number(v).toFixed(2)}
+            tick={{ fontSize: 10, fill: "#64748b" }}
+            label={{ value: xColumn, position: "insideBottom", offset: -10, fontSize: 10 }}
+          />
+          <YAxis
+            dataKey="y"
+            type="number"
+            name={yColumn}
+            tick={{ fontSize: 10, fill: "#64748b" }}
+          />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+          />
+
+          {/* 데이터 포인트 */}
+          <Scatter data={chartData} fill={COLORS[0]} opacity={0.6} />
+
+          {/* ✅ 4. 회귀선 (Line으로 표현) */}
+          <Line
+            data={trendData}
+            type="linear"
+            dataKey="y"
+            stroke="#ef4444"
+            strokeWidth={2}
+            dot={false}
+            activeDot={false}
+            legendType="none"
+          />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+}
 
       case "line": {
         if (!yColumn || !data[0].hasOwnProperty(yColumn)) return null;

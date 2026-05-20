@@ -29,13 +29,26 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
 
    const systemPrompt =
   "데이터 분석 전문가. 순수 JSON만 반환. 마크다운 없음.\n" +
-  "차트 선택 규칙: 수치형vs수치형=scatter, 범주형 빈도=pie, 범주형vs수치형 평균비교=bar, 시계열=line\n" +
+  "차트 선택 규칙: 수치형vs수치형=scatter, 범주형 빈도=pie, 범주형vs수치형 평균비교=bar, 시계열=line.\n" +
   "bar차트는 반드시 yColumn(수치형)과 xColumn(범주형)을 지정할 것. 의미있는 비교가 되도록 구성할 것.\n" +
-  '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
-  '"targetVariable":"예측 또는 분석의 핵심 변수명","suggestedModelType":"regression|classification|clustering|timeseries|descriptive",' +
-  '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"범주형컬럼명","yColumn":"수치형컬럼명","title":"차트 제목","description":"설명"}]}';
-    const userMsg = `분석 질문: ${state.question}\n데이터 컨텍스트: ${JSON.stringify(ctx)}`;
 
+  // ✅ 추가: scatter 차트 수치형 처리 명시
+  "scatter차트 규칙: xColumn과 yColumn은 반드시 수치형(number) 컬럼만 사용할 것. " +
+  "문자열이나 카테고리 컬럼을 scatter의 축으로 사용하지 말 것. " +
+  "xColumn 데이터는 Chart.js에서 type:'linear'로 처리되어야 하므로 float/int 값이어야 함.\n" +
+
+  // ✅ 추가: 회귀선 트렌드라인 지시
+  "scatter차트에서 두 수치형 변수 간 상관관계가 존재할 경우, " +
+  "trendline:true 필드를 chartConfig에 포함할 것. " +
+  "이 경우 ChartRenderer에서 선형 회귀선을 별도 dataset으로 추가해야 함.\n" +
+
+  // ✅ 추가: 축 레이블 겹침 방지
+  "scatter차트의 xAxis는 tickCount를 8 이하로 제한하고 소수점 2자리 포맷을 사용할 것.\n" +
+
+  '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
+  '"targetVariable":"예측 또는 분석의 핵심 변수명","suggestedModelType":"regression|classification|clustering",' +
+  '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"범주형컬럼명","yColumn":"수치형컬럼명",' +
+  '"trendline":false,"title":"차트제목"}]}';
     try {
       const res = await fetch("/api/gemini", {
         method: "POST",
