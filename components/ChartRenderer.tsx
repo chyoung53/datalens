@@ -37,11 +37,12 @@ export default function ChartRenderer({ config, data, height = 240 }: ChartRende
             }
           });
           const chartData = Object.entries(groups)
-            .slice(0, 12)
-            .map(([name, vals]) => ({
-              name,
-              평균: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100,
-            }));
+  .map(([name, vals]) => ({
+    name,
+    평균: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100,
+  }))
+  .sort((a, b) => a.평균 - b.평균)
+  .slice(0, 12);
           return (
             <ChartWrapper title={title}>
               <ResponsiveContainer width="100%" height={height}>
@@ -63,9 +64,10 @@ export default function ChartRenderer({ config, data, height = 240 }: ChartRende
             freq[k] = (freq[k] || 0) + 1;
           });
           const chartData = Object.entries(freq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 12)
-            .map(([name, count]) => ({ name, count }));
+  .map(([name, count]) => ({ name: isNaN(Number(name)) ? name : Number(name), count, sortKey: isNaN(Number(name)) ? name : Number(name) }))
+  .sort((a, b) => typeof a.sortKey === "number" ? a.sortKey - (b.sortKey as number) : String(a.sortKey).localeCompare(String(b.sortKey)))
+  .slice(0, 12)
+  .map(({ name, count }) => ({ name: String(name), count }));
           return (
             <ChartWrapper title={title}>
               <ResponsiveContainer width="100%" height={height}>
