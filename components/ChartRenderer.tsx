@@ -191,7 +191,7 @@ case "scatter": {
             activeDot={false}
             legendType="none"
           />
-        </ScatterChart>
+        </ComposedChart>
       </ResponsiveContainer>
     </ChartWrapper>
   );
