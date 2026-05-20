@@ -27,12 +27,13 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
       state.colKoreanNames
     );
 
-    const systemPrompt =
-      "데이터 분석 전문가. 순수 JSON만 반환. 마크다운 없음. 모든 문자열 값은 빈 문자열 없이 채워야 함.\n" +
-      '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
-      '"targetVariable":"예측 또는 분석의 핵심 변수명","suggestedModelType":"regression|classification|clustering|timeseries|descriptive",' +
-      '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"컬럼명","yColumn":"컬럼명 또는 null","title":"차트 제목","description":"설명"}]}';
-
+   const systemPrompt =
+  "데이터 분석 전문가. 순수 JSON만 반환. 마크다운 없음.\n" +
+  "차트 선택 규칙: 수치형vs수치형=scatter, 범주형 빈도=pie, 범주형vs수치형 평균비교=bar, 시계열=line\n" +
+  "bar차트는 반드시 yColumn(수치형)과 xColumn(범주형)을 지정할 것. 의미있는 비교가 되도록 구성할 것.\n" +
+  '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
+  '"targetVariable":"예측 또는 분석의 핵심 변수명","suggestedModelType":"regression|classification|clustering|timeseries|descriptive",' +
+  '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"범주형컬럼명","yColumn":"수치형컬럼명","title":"차트 제목","description":"설명"}]}';
     const userMsg = `분석 질문: ${state.question}\n데이터 컨텍스트: ${JSON.stringify(ctx)}`;
 
     try {
