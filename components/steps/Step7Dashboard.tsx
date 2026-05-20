@@ -267,7 +267,7 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
 
       <div style={{ display: "flex", gap: 10 }}>
