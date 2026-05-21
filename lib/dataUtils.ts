@@ -396,10 +396,13 @@ export function histogramData(
     counts[idx]++;
   });
 
-  return counts.map((count, i) => ({
+  return counts
+  .map((count, i) => ({
     range: `${formatNumber(min + i * binSize)}`,
     count,
-  }));
+    value: min + i * binSize,
+  }))
+  .sort((a, b) => a.value - b.value);
 }
 
 // 상관관계 매트릭스 (heatmap용)
