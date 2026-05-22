@@ -283,13 +283,44 @@ export async function parseFile(file: File): Promise<DataRow[]> {
 
 async function parseCSV(file: File): Promise<DataRow[]> {
   const Papa = (await import("papaparse")).default;
+
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+
+  // 인코딩 감지: UTF-8 BOM → UTF-8, 멀티바이트 있으면 UTF-8 시도 후 EUC-KR 폴백
+  let text: string;
+  const hasUtf8Bom = bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf;
+
+  if (hasUtf8Bom) {
+    text = new TextDecoder("utf-8").decode(buffer);
+  } else if (bytes.some((b) => b > 0x7f)) {
+    try {
+      text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+    } catch {
+      // UTF-8 디코딩 실패 → EUC-KR (한국어 엑셀 내보내기 기본값)
+      text = new TextDecoder("euc-kr").decode(buffer);
+    }
+  } else {
+    text = new TextDecoder("utf-8").decode(buffer);
+  }
+
+  // BOM 문자 제거
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
+    Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       dynamicTyping: true,
-      complete: (result) => resolve(result.data as DataRow[]),
-      error: reject,
+      complete: (result) => {
+        const rows = result.data as DataRow[];
+        if (rows.length === 0) {
+          reject(new Error("CSV에서 데이터를 읽지 못했습니다. 헤더와 데이터 행이 있는지 확인해 주세요."));
+          return;
+        }
+        resolve(rows);
+      },
+      error: (err: Error) => reject(new Error(`CSV 파싱 오류: ${err.message}`)),
     });
   });
 }
