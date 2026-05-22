@@ -4,7 +4,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, ScatterChart, Scatter,
   LineChart, Line, AreaChart, Area, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer,
+  ResponsiveContainer, LabelList,
 } from "recharts";
 import type { ChartConfig, DataRow } from "@/types";
 
@@ -41,17 +41,24 @@ export default function ChartRenderer({ config, data, height = 240 }: ChartRende
     name,
     평균: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100,
   }))
-  .sort((a, b) => a.평균 - b.평균)
+  .sort((a, b) => b.평균 - a.평균)
   .slice(0, 12);
+          const minVal = chartData.reduce((m, d) => Math.min(m, d.평균), Infinity);
+          const yMin = Math.floor(minVal * 0.95 * 10) / 10;
           return (
             <ChartWrapper title={title}>
               <ResponsiveContainer width="100%" height={height}>
-                <BarChart data={chartData} margin={{ top: 4, right: 10, left: -10, bottom: 4 }}>
+                <BarChart data={chartData} margin={{ top: 20, right: 10, left: -10, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "#64748b" }} domain={[yMin, "auto"]} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
-                  <Bar dataKey="평균" fill={COLORS[0]} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="평균" radius={[4, 4, 0, 0]}>
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                    <LabelList dataKey="평균" position="top" style={{ fontSize: 10, fill: "#334155", fontWeight: 600 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartWrapper>
@@ -80,6 +87,7 @@ export default function ChartRenderer({ config, data, height = 240 }: ChartRende
                     {chartData.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
+                    <LabelList dataKey="count" position="top" style={{ fontSize: 10, fill: "#334155", fontWeight: 600 }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
