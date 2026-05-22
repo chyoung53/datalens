@@ -416,8 +416,8 @@ export function histogramData(
     .filter((v) => !isNaN(v) && isFinite(v));
   if (nums.length === 0) return [];
 
-  const min = Math.min(...nums);
-  const max = Math.max(...nums);
+  const min = nums.reduce((a, b) => (b < a ? b : a), Infinity);
+  const max = nums.reduce((a, b) => (b > a ? b : a), -Infinity);
   const bins = 20;
   const binSize = (max - min) / bins || 1;
   const counts = new Array(bins).fill(0);
