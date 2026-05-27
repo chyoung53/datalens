@@ -366,10 +366,9 @@ export function safeJSON(raw: string): Record<string, unknown> {
         .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
       return JSON.parse(fixed);
     } catch {
-      // 3차: 잘린 JSON 복구
+      // 3차: 잘린 JSON 복구 (열린 괄호 닫기)
       try {
         let truncated = s;
-        // 열린 배열/객체 닫기
         const opens = (truncated.match(/\[/g) || []).length;
         const closes = (truncated.match(/\]/g) || []).length;
         for (let i = 0; i < opens - closes; i++) truncated += "]";
@@ -377,9 +376,19 @@ export function safeJSON(raw: string): Record<string, unknown> {
         const objCloses = (truncated.match(/\}/g) || []).length;
         for (let i = 0; i < objOpens - objCloses; i++) truncated += "}";
         return JSON.parse(truncated);
-      } catch {
-        throw new Error(`JSON 파싱 실패: ${s.slice(0, 200)}`);
-      }
+      } catch { /* ignore */ }
+
+      // 4차: 문자열 중간 잘림 — 마지막 완성된 필드 이후 제거 후 닫기
+      try {
+        // 마지막 완전한 쉼표 위치까지만 사용
+        const lastComma = s.lastIndexOf(',"');
+        if (lastComma > 0) {
+          const trimmed = s.slice(0, lastComma) + "}";
+          return JSON.parse(trimmed);
+        }
+      } catch { /* ignore */ }
+
+      throw new Error(`JSON 파싱 실패: ${s.slice(0, 200)}`);
     }
   }
 }

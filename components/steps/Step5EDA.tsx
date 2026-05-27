@@ -78,7 +78,7 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
       const res = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: state.geminiApiKey, systemPrompt, userMessage: JSON.stringify(ctx, null, 2), maxTokens: 3000 }),
+        body: JSON.stringify({ apiKey: state.geminiApiKey, systemPrompt, userMessage: JSON.stringify(ctx, null, 2), maxTokens: 6000 }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
