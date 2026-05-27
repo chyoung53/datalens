@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { safeJSON } from "@/lib/dataUtils";
-import ChartRenderer, { Histogram } from "@/components/ChartRenderer";
-import { histogramData } from "@/lib/dataUtils";
+import { safeJSON, histogramData, detectAdvancedFromQuestion } from "@/lib/dataUtils";
+import ChartRenderer, {
+  Histogram,
+  ClusterScatterChart,
+  CorrelationHeatmapChart,
+  BoxPlotChart,
+  OutlierScatterChart,
+  ParetoChart,
+} from "@/components/ChartRenderer";
 import type { StepProps, DashResult } from "@/types";
 
 const COLORS = ["#0ea5e9", "#6366f1", "#10b981", "#f59e0b", "#ec4899", "#ef4444"];
@@ -190,6 +196,52 @@ export default function Step7Dashboard({ state, onUpdate, onBack }: StepProps) {
               </div>
             </div>
           )}
+
+          {/* Advanced analysis — EDA 결과와 동일하게 표시 */}
+          {state.dfClean && state.edaResult && (() => {
+            const advTypes = new Set<string>();
+            if (Array.isArray(state.edaResult.suggestedAdvanced)) {
+              (state.edaResult.suggestedAdvanced as string[]).forEach((t) => advTypes.add(t));
+            }
+            detectAdvancedFromQuestion(state.question || "").forEach((t) => advTypes.add(t));
+            if (advTypes.size === 0) return null;
+
+            const canShow = {
+              clustering: numCols.length >= 2,
+              correlation: numCols.length >= 3,
+              boxplot: numCols.length >= 1,
+              outlier: numCols.length >= 2,
+              pareto: catCols.length >= 1,
+            };
+
+            const charts = Array.from(advTypes).map((type) => {
+              if (!canShow[type as keyof typeof canShow]) return null;
+              switch (type) {
+                case "clustering":
+                  return <ClusterScatterChart key="cl" data={state.dfClean!} xCol={numCols[0]} yCol={numCols[1]} k={3} />;
+                case "correlation":
+                  return <CorrelationHeatmapChart key="co" data={state.dfClean!} numCols={numCols} />;
+                case "boxplot":
+                  return <BoxPlotChart key="bp" cols={numCols} statsMap={state.colStatsMap} />;
+                case "outlier":
+                  return <OutlierScatterChart key="ou" data={state.dfClean!} xCol={numCols[0]} yCol={numCols[1]} statsMap={state.colStatsMap} />;
+                case "pareto":
+                  return <ParetoChart key="pa" data={state.dfClean!} xCol={catCols[0]} yCol={numCols[0]} />;
+                default:
+                  return null;
+              }
+            }).filter(Boolean);
+
+            if (charts.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 28 }}>
+                <h3 style={{ fontSize: 16, marginBottom: 14 }}>🔬 심화 분석</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {charts}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Top Insights */}
           {dash.topInsights.length > 0 && (

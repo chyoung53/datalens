@@ -436,6 +436,18 @@ export function histogramData(
   .sort((a, b) => a.value - b.value);
 }
 
+// 사용자 질문에서 심화 분석 유형 감지
+export function detectAdvancedFromQuestion(question: string): Set<string> {
+  const q = question.toLowerCase();
+  const result = new Set<string>();
+  if (/군집|클러스터|cluster|segment|그룹화|세그먼트/.test(q)) result.add("clustering");
+  if (/상관관계|상관|연관성|연관|correlation/.test(q)) result.add("correlation");
+  if (/분포|박스플롯|사분위|iqr|상자 그림/.test(q)) result.add("boxplot");
+  if (/이상값|이상치|outlier|anomaly|비정상/.test(q)) result.add("outlier");
+  if (/파레토|pareto|누적|상위.*%|80\/20/.test(q)) result.add("pareto");
+  return result;
+}
+
 // K-means 군집화 (Lloyd's 알고리즘 + K-means++ 초기화)
 export function kMeans(
   data: DataRow[],

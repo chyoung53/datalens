@@ -382,7 +382,10 @@ export function CorrelationHeatmapChart({ data, numCols }: CorrelationHeatmapPro
   if (cols.length < 2) return null;
 
   const cell = Math.min(60, Math.floor(340 / cols.length));
-  const padL = 82, padT = 82;
+  const maxLen = Math.max(...cols.map((c) => c.length));
+  const padL = 82;
+  // 수직 레이블 높이: 글자당 약 5.8px, 여유 14px
+  const padT = Math.max(70, Math.min(130, maxLen * 5.8 + 14));
   const W = padL + cols.length * cell;
   const H = padT + cols.length * cell;
 
@@ -400,17 +403,16 @@ export function CorrelationHeatmapChart({ data, numCols }: CorrelationHeatmapPro
     <ChartWrapper title="상관관계 히트맵 (Pearson r)">
       <div style={{ overflowX: "auto" }}>
         <svg width={W} height={H} style={{ display: "block" }}>
+          {/* 열 레이블 — 수직 회전으로 겹침 방지 */}
           {cols.map((col, ci) => (
             <text
               key={`ch-${ci}`}
-              x={padL + ci * cell + cell / 2}
-              y={padT - 6}
-              textAnchor="end"
+              transform={`translate(${padL + ci * cell + cell / 2}, ${padT - 6}) rotate(-90)`}
+              textAnchor="start"
               fontSize={9}
               fill="#475569"
-              transform={`rotate(-40 ${padL + ci * cell + cell / 2} ${padT - 6})`}
             >
-              {col.length > 14 ? col.slice(0, 14) + "…" : col}
+              {col.length > 16 ? col.slice(0, 16) + "…" : col}
             </text>
           ))}
           {cols.map((col, ri) => (
