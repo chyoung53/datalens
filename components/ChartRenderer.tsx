@@ -1,12 +1,14 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   BarChart, Bar, PieChart, Pie, Cell, ScatterChart, Scatter,
   LineChart, Line, AreaChart, Area, ComposedChart,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LabelList,
 } from "recharts";
-import type { ChartConfig, DataRow } from "@/types";
+import type { ChartConfig, ColStats, DataRow } from "@/types";
+import { kMeans, correlationMatrix, formatNumber } from "@/lib/dataUtils";
 
 const COLORS = ["#0ea5e9", "#6366f1", "#10b981", "#f59e0b", "#ec4899", "#ef4444", "#8b5cf6", "#06b6d4"];
 
@@ -311,6 +313,239 @@ export function FeatureBar({ features }: FeatureBarProps) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+    </ChartWrapper>
+  );
+}
+
+// ─── K-means 군집 산점도 ───────────────────────────────────────────────────
+interface ClusterScatterProps {
+  data: DataRow[];
+  xCol: string;
+  yCol: string;
+  k?: number;
+  height?: number;
+}
+export function ClusterScatterChart({ data, xCol, yCol, k = 3, height = 280 }: ClusterScatterProps) {
+  const clustered = useMemo(() => kMeans(data, xCol, yCol, k), [data, xCol, yCol, k]);
+
+  const groups = useMemo(
+    () => Array.from({ length: k }, (_, ci) =>
+      clustered.filter((p) => p.cluster === ci).map((p) => ({ x: p.x, y: p.y }))
+    ),
+    [clustered, k]
+  );
+
+  const xVals = clustered.map((p) => p.x);
+  const xMin = Math.min(...xVals), xMax = Math.max(...xVals);
+  const xStep = (xMax - xMin) / 7 || 1;
+  const xTicks = Array.from({ length: 8 }, (_, i) => Math.round((xMin + xStep * i) * 100) / 100);
+
+  if (clustered.length === 0) return null;
+
+  return (
+    <ChartWrapper title={`K-means 군집화 (${xCol} vs ${yCol}, k=${k})`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis
+            dataKey="x"
+            type="number"
+            domain={["auto", "auto"]}
+            ticks={xTicks}
+            tickFormatter={(v) => Number(v).toFixed(1)}
+            tick={{ fontSize: 10, fill: "#64748b" }}
+            label={{ value: xCol, position: "insideBottom", offset: -10, fontSize: 10 }}
+          />
+          <YAxis dataKey="y" type="number" tick={{ fontSize: 10, fill: "#64748b" }} />
+          <Tooltip
+            cursor={{ strokeDasharray: "3 3" }}
+            contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
+          />
+          <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+          {groups.map((pts, ci) => (
+            <Scatter key={ci} name={`군집 ${ci + 1}`} data={pts} fill={COLORS[ci % COLORS.length]} opacity={0.65} />
+          ))}
+        </ScatterChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+}
+
+// ─── 상관관계 히트맵 ──────────────────────────────────────────────────────
+interface CorrelationHeatmapProps {
+  data: DataRow[];
+  numCols: string[];
+}
+export function CorrelationHeatmapChart({ data, numCols }: CorrelationHeatmapProps) {
+  const cols = numCols.slice(0, 8);
+  const matrix = useMemo(() => correlationMatrix(data, cols), [data, cols]);
+  if (cols.length < 2) return null;
+
+  const cell = Math.min(60, Math.floor(340 / cols.length));
+  const padL = 82, padT = 82;
+  const W = padL + cols.length * cell;
+  const H = padT + cols.length * cell;
+
+  const getColor = (v: number) => {
+    if (v >= 0.7) return "rgb(37,99,235)";
+    if (v >= 0.4) return "rgb(147,197,253)";
+    if (v >= 0.1) return "rgb(219,234,254)";
+    if (v >= -0.1) return "rgb(241,245,249)";
+    if (v >= -0.4) return "rgb(252,165,165)";
+    if (v >= -0.7) return "rgb(248,113,113)";
+    return "rgb(239,68,68)";
+  };
+
+  return (
+    <ChartWrapper title="상관관계 히트맵 (Pearson r)">
+      <div style={{ overflowX: "auto" }}>
+        <svg width={W} height={H} style={{ display: "block" }}>
+          {cols.map((col, ci) => (
+            <text
+              key={`ch-${ci}`}
+              x={padL + ci * cell + cell / 2}
+              y={padT - 6}
+              textAnchor="end"
+              fontSize={9}
+              fill="#475569"
+              transform={`rotate(-40 ${padL + ci * cell + cell / 2} ${padT - 6})`}
+            >
+              {col.length > 14 ? col.slice(0, 14) + "…" : col}
+            </text>
+          ))}
+          {cols.map((col, ri) => (
+            <text
+              key={`rh-${ri}`}
+              x={padL - 6}
+              y={padT + ri * cell + cell / 2}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fontSize={9}
+              fill="#475569"
+            >
+              {col.length > 14 ? col.slice(0, 14) + "…" : col}
+            </text>
+          ))}
+          {matrix.map((entry, idx) => {
+            const ci = cols.indexOf(entry.col);
+            const ri = cols.indexOf(entry.row);
+            if (ci < 0 || ri < 0) return null;
+            return (
+              <g key={idx}>
+                <rect
+                  x={padL + ci * cell}
+                  y={padT + ri * cell}
+                  width={cell}
+                  height={cell}
+                  fill={getColor(entry.value)}
+                  stroke="#fff"
+                  strokeWidth={1}
+                />
+                {cell >= 38 && (
+                  <text
+                    x={padL + ci * cell + cell / 2}
+                    y={padT + ri * cell + cell / 2}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize={Math.min(10, cell / 5)}
+                    fill={Math.abs(entry.value) > 0.35 ? "#fff" : "#334155"}
+                    fontWeight={600}
+                  >
+                    {entry.value.toFixed(2)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <div style={{ display: "flex", gap: 10, marginTop: 8, justifyContent: "center", alignItems: "center", fontSize: 10, color: "#64748b" }}>
+        <span style={{ width: 14, height: 10, background: "rgb(239,68,68)", display: "inline-block", borderRadius: 2 }} />
+        강한 음의 상관
+        <span style={{ width: 14, height: 10, background: "rgb(241,245,249)", border: "1px solid #e2e8f0", display: "inline-block", borderRadius: 2 }} />
+        무상관
+        <span style={{ width: 14, height: 10, background: "rgb(37,99,235)", display: "inline-block", borderRadius: 2 }} />
+        강한 양의 상관
+      </div>
+    </ChartWrapper>
+  );
+}
+
+// ─── 박스플롯 ─────────────────────────────────────────────────────────────
+interface BoxPlotProps {
+  cols: string[];
+  statsMap: Record<string, ColStats>;
+  height?: number;
+}
+export function BoxPlotChart({ cols, statsMap, height = 220 }: BoxPlotProps) {
+  const valid = cols.filter((c) => statsMap[c] && statsMap[c].iqr >= 0).slice(0, 8);
+  if (valid.length === 0) return null;
+
+  const padL = 52, padR = 10, padT = 14, padB = 34;
+  const W = Math.max(400, valid.length * 70 + padL + padR);
+  const plotH = height - padT - padB;
+  const plotW = W - padL - padR;
+  const colW = plotW / valid.length;
+
+  const allVals = valid.flatMap((c) => [
+    statsMap[c].outlierLow, statsMap[c].q1, statsMap[c].median,
+    statsMap[c].q3, statsMap[c].outlierHigh,
+  ]).filter(isFinite);
+  const gMin = Math.min(...allVals);
+  const gMax = Math.max(...allVals);
+  const range = gMax - gMin || 1;
+  const toY = (v: number) => padT + plotH - ((v - gMin) / range) * plotH;
+
+  return (
+    <ChartWrapper title="수치형 컬럼 박스플롯 (Q1·중앙값·Q3·수염)">
+      <div style={{ overflowX: "auto" }}>
+        <svg width={W} height={height} style={{ display: "block" }}>
+          {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+            const y = padT + plotH * (1 - p);
+            const v = gMin + range * p;
+            return (
+              <g key={i}>
+                <line x1={padL} y1={y} x2={W - padR} y2={y} stroke="#e2e8f0" strokeDasharray="2 3" />
+                <text x={padL - 5} y={y} textAnchor="end" dominantBaseline="middle" fontSize={9} fill="#94a3b8">
+                  {formatNumber(v)}
+                </text>
+              </g>
+            );
+          })}
+          {valid.map((col, ci) => {
+            const s = statsMap[col];
+            const cx = padL + (ci + 0.5) * colW;
+            const bw = Math.min(colW * 0.45, 30);
+            const wLow = Math.max(s.outlierLow, s.min);
+            const wHigh = Math.min(s.outlierHigh, s.max);
+            const q1y = toY(s.q1), q3y = toY(s.q3), medY = toY(s.median);
+            const wLowY = toY(wLow), wHighY = toY(wHigh);
+            const color = COLORS[ci % COLORS.length];
+            return (
+              <g key={col}>
+                <line x1={cx} y1={wHighY} x2={cx} y2={q3y} stroke={color} strokeWidth={1.5} />
+                <line x1={cx} y1={q1y} x2={cx} y2={wLowY} stroke={color} strokeWidth={1.5} />
+                <line x1={cx - bw / 3} y1={wHighY} x2={cx + bw / 3} y2={wHighY} stroke={color} strokeWidth={1.5} />
+                <line x1={cx - bw / 3} y1={wLowY} x2={cx + bw / 3} y2={wLowY} stroke={color} strokeWidth={1.5} />
+                <rect
+                  x={cx - bw / 2} y={q3y}
+                  width={bw} height={Math.max(q1y - q3y, 2)}
+                  fill={`${color}28`} stroke={color} strokeWidth={1.5}
+                />
+                <line x1={cx - bw / 2} y1={medY} x2={cx + bw / 2} y2={medY} stroke={color} strokeWidth={2.5} />
+                <text x={cx} y={height - padB + 14} textAnchor="middle" fontSize={9} fill="#475569">
+                  {col.length > 11 ? col.slice(0, 11) + "…" : col}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", marginTop: 6, fontSize: 10, color: "#94a3b8" }}>
+        <span>━ 중앙값</span>
+        <span>□ IQR (Q1-Q3)</span>
+        <span>| 수염 (이상값 경계)</span>
+      </div>
     </ChartWrapper>
   );
 }

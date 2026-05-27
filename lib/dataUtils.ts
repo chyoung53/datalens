@@ -436,6 +436,73 @@ export function histogramData(
   .sort((a, b) => a.value - b.value);
 }
 
+// K-means 군집화 (Lloyd's 알고리즘 + K-means++ 초기화)
+export function kMeans(
+  data: DataRow[],
+  xCol: string,
+  yCol: string,
+  k: number = 3,
+  maxIter: number = 100
+): { x: number; y: number; cluster: number }[] {
+  const raw = data
+    .slice(0, 600)
+    .map((row) => ({ x: Number(row[xCol]), y: Number(row[yCol]) }))
+    .filter((p) => !isNaN(p.x) && !isNaN(p.y) && isFinite(p.x) && isFinite(p.y));
+
+  if (raw.length < k) return raw.map((p, i) => ({ ...p, cluster: i % k }));
+
+  const xMin = raw.reduce((m, p) => Math.min(m, p.x), Infinity);
+  const xMax = raw.reduce((m, p) => Math.max(m, p.x), -Infinity);
+  const yMin = raw.reduce((m, p) => Math.min(m, p.y), Infinity);
+  const yMax = raw.reduce((m, p) => Math.max(m, p.y), -Infinity);
+  const xR = xMax - xMin || 1;
+  const yR = yMax - yMin || 1;
+  const pts = raw.map((p) => ({ nx: (p.x - xMin) / xR, ny: (p.y - yMin) / yR }));
+
+  // K-means++ 초기화
+  const centroids: { nx: number; ny: number }[] = [];
+  centroids.push({ ...pts[Math.floor(Math.random() * pts.length)] });
+  for (let c = 1; c < k; c++) {
+    const dists = pts.map((p) =>
+      Math.min(...centroids.map((ct) => (p.nx - ct.nx) ** 2 + (p.ny - ct.ny) ** 2))
+    );
+    const total = dists.reduce((s, d) => s + d, 0);
+    let r = Math.random() * total;
+    let chosen = pts.length - 1;
+    for (let i = 0; i < dists.length; i++) {
+      r -= dists[i];
+      if (r <= 0) { chosen = i; break; }
+    }
+    centroids.push({ ...pts[chosen] });
+  }
+
+  let assignments = new Array(pts.length).fill(0);
+  for (let iter = 0; iter < maxIter; iter++) {
+    const next = pts.map((p) => {
+      let best = 0, bestD = Infinity;
+      centroids.forEach((c, ci) => {
+        const d = (p.nx - c.nx) ** 2 + (p.ny - c.ny) ** 2;
+        if (d < bestD) { bestD = d; best = ci; }
+      });
+      return best;
+    });
+    const changed = next.some((a, i) => a !== assignments[i]);
+    assignments = next;
+    if (!changed) break;
+    for (let c = 0; c < k; c++) {
+      const members = pts.filter((_, i) => assignments[i] === c);
+      if (members.length > 0) {
+        centroids[c] = {
+          nx: members.reduce((s, p) => s + p.nx, 0) / members.length,
+          ny: members.reduce((s, p) => s + p.ny, 0) / members.length,
+        };
+      }
+    }
+  }
+
+  return raw.map((p, i) => ({ ...p, cluster: assignments[i] }));
+}
+
 // 상관관계 매트릭스 (heatmap용)
 export function correlationMatrix(
   data: DataRow[],

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { buildContext, safeJSON, histogramData, colValues } from "@/lib/dataUtils";
-import ChartRenderer, { Histogram } from "@/components/ChartRenderer";
+import ChartRenderer, { Histogram, ClusterScatterChart, CorrelationHeatmapChart, BoxPlotChart } from "@/components/ChartRenderer";
 import type { StepProps, EDAResult, ChartConfig } from "@/types";
 
 export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const eda = state.edaResult;
   const numCols = Object.entries(state.colTypes).filter(([, t]) => t === "numeric").map(([c]) => c);
@@ -177,6 +178,60 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
                   />
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Advanced analysis */}
+          {state.dfClean && (
+            <div style={{ marginBottom: 28 }}>
+              {!showAdvanced ? (
+                <button
+                  className="btn-secondary"
+                  onClick={() => setShowAdvanced(true)}
+                  style={{
+                    width: "100%", padding: "14px", fontSize: 14,
+                    borderStyle: "dashed", borderColor: "#6366f1",
+                    color: "#6366f1", background: "rgba(99,102,241,0.04)",
+                  }}
+                >
+                  🔬 심화 분석 보기 &nbsp;—&nbsp; K-means 군집화 · 상관관계 히트맵 · 박스플롯
+                </button>
+              ) : (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 16, margin: 0 }}>🔬 심화 분석</h3>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setShowAdvanced(false)}
+                      style={{ fontSize: 12, padding: "4px 12px" }}
+                    >
+                      접기
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {numCols.length >= 2 && (
+                      <ClusterScatterChart
+                        data={state.dfClean}
+                        xCol={numCols[0]}
+                        yCol={numCols[1]}
+                        k={3}
+                      />
+                    )}
+                    {numCols.length >= 3 && (
+                      <CorrelationHeatmapChart
+                        data={state.dfClean}
+                        numCols={numCols}
+                      />
+                    )}
+                    {numCols.length >= 1 && (
+                      <BoxPlotChart
+                        cols={numCols}
+                        statsMap={state.colStatsMap}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>
