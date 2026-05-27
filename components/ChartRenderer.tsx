@@ -550,6 +550,117 @@ export function BoxPlotChart({ cols, statsMap, height = 220 }: BoxPlotProps) {
   );
 }
 
+// ─── 이상값 탐지 산점도 ───────────────────────────────────────────────────
+interface OutlierScatterProps {
+  data: DataRow[];
+  xCol: string;
+  yCol: string;
+  statsMap: Record<string, ColStats>;
+  height?: number;
+}
+export function OutlierScatterChart({ data, xCol, yCol, statsMap, height = 260 }: OutlierScatterProps) {
+  const { normal, outliers } = useMemo(() => {
+    const xs = statsMap[xCol], ys = statsMap[yCol];
+    const pts = data.slice(0, 500).reduce<{
+      normal: { x: number; y: number }[];
+      outliers: { x: number; y: number }[];
+    }>((acc, row) => {
+      const x = Number(row[xCol]), y = Number(row[yCol]);
+      if (isNaN(x) || isNaN(y) || !isFinite(x) || !isFinite(y)) return acc;
+      const xOut = xs ? (x < xs.outlierLow || x > xs.outlierHigh) : false;
+      const yOut = ys ? (y < ys.outlierLow || y > ys.outlierHigh) : false;
+      (xOut || yOut ? acc.outliers : acc.normal).push({ x, y });
+      return acc;
+    }, { normal: [], outliers: [] });
+    return pts;
+  }, [data, xCol, yCol, statsMap]);
+
+  if (normal.length + outliers.length === 0) return null;
+
+  const allX = [...normal, ...outliers].map((p) => p.x);
+  const xMin = Math.min(...allX), xMax = Math.max(...allX);
+  const xStep = (xMax - xMin) / 7 || 1;
+  const xTicks = Array.from({ length: 8 }, (_, i) => Math.round((xMin + xStep * i) * 100) / 100);
+  const outlierPct = Math.round((outliers.length / (normal.length + outliers.length)) * 100);
+
+  return (
+    <ChartWrapper title={`이상값 탐지 — ${xCol} vs ${yCol} · 이상값 비율 ${outlierPct}%`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis
+            dataKey="x" type="number" domain={["auto", "auto"]}
+            ticks={xTicks} tickFormatter={(v) => Number(v).toFixed(1)}
+            tick={{ fontSize: 10, fill: "#64748b" }}
+            label={{ value: xCol, position: "insideBottom", offset: -10, fontSize: 10 }}
+          />
+          <YAxis dataKey="y" type="number" tick={{ fontSize: 10, fill: "#64748b" }} />
+          <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
+          <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+          <Scatter name={`정상 (${normal.length}개)`} data={normal} fill="#0ea5e9" opacity={0.45} />
+          <Scatter name={`이상값 (${outliers.length}개)`} data={outliers} fill="#ef4444" opacity={0.85} />
+        </ScatterChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+}
+
+// ─── 파레토 차트 ──────────────────────────────────────────────────────────
+interface ParetoProps {
+  data: DataRow[];
+  xCol: string;
+  yCol?: string;
+  height?: number;
+}
+export function ParetoChart({ data, xCol, yCol, height = 280 }: ParetoProps) {
+  const chartData = useMemo(() => {
+    const groups: Record<string, number> = {};
+    data.forEach((row) => {
+      const k = String(row[xCol] ?? "");
+      if (!k) return;
+      if (yCol) {
+        const v = Number(row[yCol]);
+        if (!isNaN(v)) groups[k] = (groups[k] || 0) + v;
+      } else {
+        groups[k] = (groups[k] || 0) + 1;
+      }
+    });
+    const sorted = Object.entries(groups).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    const total = sorted.reduce((s, [, v]) => s + v, 0);
+    let cum = 0;
+    return sorted.map(([name, value]) => {
+      cum += value;
+      return {
+        name: name.length > 10 ? name.slice(0, 10) + "…" : name,
+        value: Math.round(value * 100) / 100,
+        cumPct: Math.round((cum / total) * 1000) / 10,
+      };
+    });
+  }, [data, xCol, yCol]);
+
+  if (chartData.length === 0) return null;
+  const yLabel = yCol ? `${yCol} 합계` : "빈도";
+
+  return (
+    <ChartWrapper title={`파레토 차트 — ${xCol}${yCol ? ` (${yCol} 기준)` : ""}`}>
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={chartData} margin={{ top: 4, right: 44, left: -10, bottom: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#64748b" }} />
+          <YAxis yAxisId="left" tick={{ fontSize: 10, fill: "#64748b" }} />
+          <YAxis yAxisId="right" orientation="right" domain={[0, 100]} unit="%" tick={{ fontSize: 10, fill: "#64748b" }} />
+          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
+          <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+          <Bar yAxisId="left" dataKey="value" name={yLabel} radius={[4, 4, 0, 0]}>
+            {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Bar>
+          <Line yAxisId="right" type="monotone" dataKey="cumPct" name="누적 %" stroke="#ef4444" strokeWidth={2} dot={{ r: 3, fill: "#ef4444" }} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+}
+
 // ─── Wrapper ───────────────────────────────────────────────────────────────
 function ChartWrapper({ title, children }: { title: string; children: React.ReactNode }) {
   return (

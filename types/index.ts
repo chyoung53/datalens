@@ -39,6 +39,7 @@ export interface EDAResult {
   targetVariable: string;
   suggestedModelType: string;
   chartConfig: ChartConfig[];
+  suggestedAdvanced?: string[]; // "clustering"|"correlation"|"boxplot"|"outlier"|"pareto"
 }
 
 export interface FeatureImportance {

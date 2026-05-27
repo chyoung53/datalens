@@ -1,23 +1,60 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { buildContext, safeJSON, histogramData, colValues } from "@/lib/dataUtils";
-import ChartRenderer, { Histogram, ClusterScatterChart, CorrelationHeatmapChart, BoxPlotChart } from "@/components/ChartRenderer";
+import { buildContext, safeJSON, histogramData } from "@/lib/dataUtils";
+import ChartRenderer, {
+  Histogram,
+  ClusterScatterChart,
+  CorrelationHeatmapChart,
+  BoxPlotChart,
+  OutlierScatterChart,
+  ParetoChart,
+} from "@/components/ChartRenderer";
 import type { StepProps, EDAResult, ChartConfig } from "@/types";
+
+// 사용자 질문에서 심화 분석 유형을 감지
+function detectAdvancedFromQuestion(question: string): Set<string> {
+  const q = question.toLowerCase();
+  const result = new Set<string>();
+  if (/군집|클러스터|cluster|segment|그룹화|세그먼트/.test(q)) result.add("clustering");
+  if (/상관관계|상관|연관성|연관|correlation/.test(q)) result.add("correlation");
+  if (/분포|박스플롯|사분위|iqr|상자 그림/.test(q)) result.add("boxplot");
+  if (/이상값|이상치|outlier|anomaly|비정상/.test(q)) result.add("outlier");
+  if (/파레토|pareto|누적|상위.*%|80\/20/.test(q)) result.add("pareto");
+  return result;
+}
+
+const ADVANCED_LABEL: Record<string, string> = {
+  clustering: "K-means 군집화",
+  correlation: "상관관계 히트맵",
+  boxplot: "박스플롯",
+  outlier: "이상값 탐지",
+  pareto: "파레토 차트",
+};
+const ALL_ADVANCED = ["clustering", "correlation", "boxplot", "outlier", "pareto"];
 
 export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   const eda = state.edaResult;
   const numCols = Object.entries(state.colTypes).filter(([, t]) => t === "numeric").map(([c]) => c);
   const catCols = Object.entries(state.colTypes).filter(([, t]) => t === "categorical").map(([c]) => c);
 
+  // 자동 표시할 심화 분석 유형 계산 (AI 제안 + 키워드 감지)
+  const autoTypes = new Set<string>();
+  if (Array.isArray(eda?.suggestedAdvanced)) {
+    (eda!.suggestedAdvanced as string[]).forEach((t) => autoTypes.add(t));
+  }
+  detectAdvancedFromQuestion(state.question || "").forEach((t) => autoTypes.add(t));
+  const visibleTypes = showAll ? new Set(ALL_ADVANCED) : autoTypes;
+
   async function runEDA() {
     if (!state.dfClean) return;
     setLoading(true);
     setError("");
+    setShowAll(false);
 
     const ctx = buildContext(
       state.dfClean,
@@ -28,28 +65,26 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
       state.colKoreanNames
     );
 
-   const systemPrompt =
-  "데이터 분석 전문가. 순수 JSON만 반환. 마크다운 없음.\n" +
-  "차트 선택 규칙: 수치형vs수치형=scatter, 범주형 빈도=pie, 범주형vs수치형 평균비교=bar, 시계열=line.\n" +
-  "bar차트는 반드시 yColumn(수치형)과 xColumn(범주형)을 지정할 것. 의미있는 비교가 되도록 구성할 것.\n" +
+    const systemPrompt =
+      "데이터 분석 전문가. 순수 JSON만 반환. 마크다운 없음.\n" +
+      "차트 선택 규칙: 수치형vs수치형=scatter, 범주형 빈도=pie, 범주형vs수치형 평균비교=bar, 시계열=line.\n" +
+      "bar차트는 반드시 yColumn(수치형)과 xColumn(범주형)을 지정할 것.\n" +
+      "scatter차트 규칙: xColumn과 yColumn은 반드시 수치형(number) 컬럼만 사용할 것.\n" +
+      "scatter차트에서 두 수치형 변수 간 상관관계가 존재할 경우 trendline:true 포함.\n" +
+      "scatter차트의 xAxis는 tickCount를 8 이하로 제한하고 소수점 2자리 포맷을 사용할 것.\n" +
+      "【심화 분석 감지】 사용자 질문을 분석하여 suggestedAdvanced 배열에 해당 항목 포함:\n" +
+      "  군집/클러스터/그룹/segment 분석 → 'clustering'\n" +
+      "  상관관계/연관성 분석 → 'correlation'\n" +
+      "  분포/박스플롯/사분위/IQR → 'boxplot'\n" +
+      "  이상값/anomaly/비정상 탐지 → 'outlier'\n" +
+      "  파레토/누적비율/상위N% → 'pareto'\n" +
+      "  해당 없으면 빈 배열 []\n" +
+      '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
+      '"targetVariable":"핵심 변수명","suggestedModelType":"regression|classification|clustering",' +
+      '"suggestedAdvanced":["해당 심화 분석 유형들"],' +
+      '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"컬럼명","yColumn":"컬럼명",' +
+      '"trendline":false,"title":"차트제목"}]}';
 
-  // ✅ 추가: scatter 차트 수치형 처리 명시
-  "scatter차트 규칙: xColumn과 yColumn은 반드시 수치형(number) 컬럼만 사용할 것. " +
-  "문자열이나 카테고리 컬럼을 scatter의 축으로 사용하지 말 것. " +
-  "xColumn 데이터는 Chart.js에서 type:'linear'로 처리되어야 하므로 float/int 값이어야 함.\n" +
-
-  // ✅ 추가: 회귀선 트렌드라인 지시
-  "scatter차트에서 두 수치형 변수 간 상관관계가 존재할 경우, " +
-  "trendline:true 필드를 chartConfig에 포함할 것. " +
-  "이 경우 ChartRenderer에서 선형 회귀선을 별도 dataset으로 추가해야 함.\n" +
-
-  // ✅ 추가: 축 레이블 겹침 방지
-  "scatter차트의 xAxis는 tickCount를 8 이하로 제한하고 소수점 2자리 포맷을 사용할 것.\n" +
-
-  '{"summary":"전체 요약 2-3문장","insights":["인사이트1","인사이트2","인사이트3","인사이트4"],' +
-  '"targetVariable":"예측 또는 분석의 핵심 변수명","suggestedModelType":"regression|classification|clustering",' +
-  '"chartConfig":[{"type":"bar|pie|scatter|line|area","xColumn":"범주형컬럼명","yColumn":"수치형컬럼명",' +
-  '"trendline":false,"title":"차트제목"}]}';
     try {
       const res = await fetch("/api/gemini", {
         method: "POST",
@@ -61,7 +96,6 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
 
       const parsed = safeJSON(data.text) as unknown as EDAResult;
 
-      // 차트 설정 보강
       let charts: ChartConfig[] = Array.isArray(parsed.chartConfig) ? parsed.chartConfig : [];
       if (catCols.length && !charts.find((c) => c.type === "pie")) {
         charts.push({ type: "pie", xColumn: catCols[0], title: `${catCols[0]} 분포`, description: "" });
@@ -70,6 +104,10 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
         charts.push({ type: "scatter", xColumn: numCols[0], yColumn: numCols[1], title: `${numCols[0]} vs ${numCols[1]}`, description: "" });
       }
 
+      const suggestedAdvanced = Array.isArray(parsed.suggestedAdvanced)
+        ? (parsed.suggestedAdvanced as string[]).filter((t) => ALL_ADVANCED.includes(t))
+        : [];
+
       onUpdate({
         edaResult: {
           summary: String(parsed.summary || ""),
@@ -77,6 +115,7 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
           targetVariable: String(parsed.targetVariable || ""),
           suggestedModelType: String(parsed.suggestedModelType || "descriptive"),
           chartConfig: charts.slice(0, 6),
+          suggestedAdvanced,
         },
         modelResult: null,
         dashResult: null,
@@ -92,6 +131,48 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
   }, []);
 
   if (loading) return <LoadingState label="EDA 분석 중" />;
+
+  // 각 차트 유형의 렌더링 조건
+  const canShow = {
+    clustering: numCols.length >= 2,
+    correlation: numCols.length >= 3,
+    boxplot: numCols.length >= 1,
+    outlier: numCols.length >= 2,
+    pareto: catCols.length >= 1,
+  };
+
+  function renderAdvancedChart(type: string) {
+    if (!state.dfClean) return null;
+    switch (type) {
+      case "clustering":
+        return canShow.clustering ? (
+          <ClusterScatterChart key="clustering" data={state.dfClean} xCol={numCols[0]} yCol={numCols[1]} k={3} />
+        ) : null;
+      case "correlation":
+        return canShow.correlation ? (
+          <CorrelationHeatmapChart key="correlation" data={state.dfClean} numCols={numCols} />
+        ) : null;
+      case "boxplot":
+        return canShow.boxplot ? (
+          <BoxPlotChart key="boxplot" cols={numCols} statsMap={state.colStatsMap} />
+        ) : null;
+      case "outlier":
+        return canShow.outlier ? (
+          <OutlierScatterChart key="outlier" data={state.dfClean} xCol={numCols[0]} yCol={numCols[1]} statsMap={state.colStatsMap} />
+        ) : null;
+      case "pareto":
+        return canShow.pareto ? (
+          <ParetoChart key="pareto" data={state.dfClean} xCol={catCols[0]} yCol={numCols[0]} />
+        ) : null;
+      default:
+        return null;
+    }
+  }
+
+  // 버튼에 표시할 남은 심화 분석 목록
+  const remainingTypes = ALL_ADVANCED.filter(
+    (t) => !autoTypes.has(t) && canShow[t as keyof typeof canShow]
+  );
 
   return (
     <div style={{ padding: "32px 28px", maxWidth: 1100, margin: "0 auto" }}>
@@ -118,10 +199,9 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
               {eda.targetVariable && (
                 <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
                   <span style={{ fontSize: 12, color: "#0284c7", fontFamily: "DM Mono,monospace" }}>핵심 변수:</span>
-                  <span style={{
-                    background: "rgba(14,165,233,0.12)", color: "#0284c7",
-                    borderRadius: 6, padding: "1px 8px", fontSize: 12, fontWeight: 700,
-                  }}>{eda.targetVariable}</span>
+                  <span style={{ background: "rgba(14,165,233,0.12)", color: "#0284c7", borderRadius: 6, padding: "1px 8px", fontSize: 12, fontWeight: 700 }}>
+                    {eda.targetVariable}
+                  </span>
                   <span style={{ fontSize: 12, color: "#64748b" }}>| 모델 유형: {eda.suggestedModelType}</span>
                 </div>
               )}
@@ -152,7 +232,7 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
             </div>
           )}
 
-          {/* Charts */}
+          {/* Basic charts */}
           {eda.chartConfig.length > 0 && state.dfClean && (
             <div style={{ marginBottom: 28 }}>
               <h3 style={{ fontSize: 16, marginBottom: 14 }}>📊 데이터 시각화</h3>
@@ -170,66 +250,87 @@ export default function Step5EDA({ state, onUpdate, onNext, onBack }: StepProps)
               <h3 style={{ fontSize: 16, marginBottom: 14 }}>📐 수치형 컬럼 분포</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
                 {numCols.slice(0, 6).map((col) => (
-                  <Histogram
-                    key={col}
-                    data={histogramData(state.dfClean!, col)}
-                    title={`${col} 분포`}
-                    height={180}
-                  />
+                  <Histogram key={col} data={histogramData(state.dfClean!, col)} title={`${col} 분포`} height={180} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Advanced analysis */}
+          {/* ── 심화 분석 섹션 ────────────────────────────────────── */}
           {state.dfClean && (
             <div style={{ marginBottom: 28 }}>
-              {!showAdvanced ? (
+
+              {/* 자동 감지된 심화 분석 */}
+              {autoTypes.size > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                    <h3 style={{ fontSize: 16, margin: 0 }}>🤖 질문 기반 심화 분석</h3>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {Array.from(autoTypes).map((t) => (
+                        <span key={t} style={{
+                          fontSize: 11, padding: "2px 8px", borderRadius: 20,
+                          background: "rgba(99,102,241,0.1)", color: "#6366f1",
+                          fontWeight: 600, fontFamily: "DM Mono,monospace",
+                        }}>
+                          {ADVANCED_LABEL[t] ?? t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {Array.from(autoTypes).map((t) => renderAdvancedChart(t))}
+                  </div>
+                </div>
+              )}
+
+              {/* 나머지 / 전체 심화 분석 버튼 */}
+              {!showAll && (remainingTypes.length > 0 || autoTypes.size === 0) && (
                 <button
                   className="btn-secondary"
-                  onClick={() => setShowAdvanced(true)}
+                  onClick={() => setShowAll(true)}
                   style={{
-                    width: "100%", padding: "14px", fontSize: 14,
+                    width: "100%", padding: "13px", fontSize: 13,
                     borderStyle: "dashed", borderColor: "#6366f1",
                     color: "#6366f1", background: "rgba(99,102,241,0.04)",
                   }}
                 >
-                  🔬 심화 분석 보기 &nbsp;—&nbsp; K-means 군집화 · 상관관계 히트맵 · 박스플롯
+                  🔬 심화 분석 {autoTypes.size > 0 ? "더 보기" : "보기"} &nbsp;—&nbsp;{" "}
+                  {(autoTypes.size === 0 ? ALL_ADVANCED : remainingTypes)
+                    .filter((t) => canShow[t as keyof typeof canShow])
+                    .map((t) => ADVANCED_LABEL[t])
+                    .join(" · ")}
                 </button>
-              ) : (
+              )}
+
+              {/* 전체 표시 중일 때 추가 차트 */}
+              {showAll && (
                 <>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                    <h3 style={{ fontSize: 16, margin: 0 }}>🔬 심화 분석</h3>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setShowAdvanced(false)}
-                      style={{ fontSize: 12, padding: "4px 12px" }}
-                    >
-                      접기
-                    </button>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {numCols.length >= 2 && (
-                      <ClusterScatterChart
-                        data={state.dfClean}
-                        xCol={numCols[0]}
-                        yCol={numCols[1]}
-                        k={3}
-                      />
-                    )}
-                    {numCols.length >= 3 && (
-                      <CorrelationHeatmapChart
-                        data={state.dfClean}
-                        numCols={numCols}
-                      />
-                    )}
-                    {numCols.length >= 1 && (
-                      <BoxPlotChart
-                        cols={numCols}
-                        statsMap={state.colStatsMap}
-                      />
-                    )}
-                  </div>
+                  {remainingTypes.length > 0 && (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <h3 style={{ fontSize: 16, margin: 0 }}>🔬 추가 심화 분석</h3>
+                        <button className="btn-secondary" onClick={() => setShowAll(false)} style={{ fontSize: 12, padding: "4px 12px" }}>
+                          접기
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        {remainingTypes.map((t) => renderAdvancedChart(t))}
+                      </div>
+                    </div>
+                  )}
+                  {autoTypes.size === 0 && (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+                        <h3 style={{ fontSize: 16, margin: 0 }}>🔬 심화 분석</h3>
+                        <button className="btn-secondary" onClick={() => setShowAll(false)} style={{ fontSize: 12, padding: "4px 12px" }}>
+                          접기
+                        </button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        {ALL_ADVANCED.filter((t) => canShow[t as keyof typeof canShow]).map((t) => renderAdvancedChart(t))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
