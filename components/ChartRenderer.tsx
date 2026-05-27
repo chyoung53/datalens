@@ -345,7 +345,7 @@ export function ClusterScatterChart({ data, xCol, yCol, k = 3, height = 280 }: C
   return (
     <ChartWrapper title={`K-means 군집화 (${xCol} vs ${yCol}, k=${k})`}>
       <ResponsiveContainer width="100%" height={height}>
-        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 10 }}>
+        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="x"
@@ -360,12 +360,20 @@ export function ClusterScatterChart({ data, xCol, yCol, k = 3, height = 280 }: C
             cursor={{ strokeDasharray: "3 3" }}
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }}
           />
-          <Legend iconSize={10} verticalAlign="top" wrapperStyle={{ fontSize: 11, paddingBottom: 6 }} />
           {groups.map((pts, ci) => (
-            <Scatter key={ci} name={`군집 ${ci + 1}`} data={pts} fill={COLORS[ci % COLORS.length]} opacity={0.65} />
+            <Scatter key={ci} data={pts} fill={COLORS[ci % COLORS.length]} opacity={0.65} />
           ))}
         </ScatterChart>
       </ResponsiveContainer>
+      {/* 커스텀 범례 */}
+      <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap", paddingTop: 8 }}>
+        {Array.from({ length: k }, (_, ci) => (
+          <div key={ci} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569" }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: COLORS[ci % COLORS.length], display: "inline-block" }} />
+            군집 {ci + 1}
+          </div>
+        ))}
+      </div>
     </ChartWrapper>
   );
 }
@@ -587,7 +595,7 @@ export function OutlierScatterChart({ data, xCol, yCol, statsMap, height = 260 }
   return (
     <ChartWrapper title={`이상값 탐지 — ${xCol} vs ${yCol} · 정상 ${normal.length}개 / 이상값 ${outliers.length}개 (${outlierPct}%)`}>
       <ResponsiveContainer width="100%" height={height}>
-        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 10 }}>
+        <ScatterChart margin={{ top: 4, right: 10, left: -10, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="x" type="number" domain={["auto", "auto"]}
@@ -596,11 +604,21 @@ export function OutlierScatterChart({ data, xCol, yCol, statsMap, height = 260 }
           />
           <YAxis dataKey="y" type="number" tick={{ fontSize: 10, fill: "#64748b" }} />
           <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e2e8f0" }} />
-          <Legend iconSize={10} verticalAlign="top" wrapperStyle={{ fontSize: 11, paddingBottom: 6 }} />
-          <Scatter name="정상" data={normal} fill="#0ea5e9" opacity={0.45} />
-          <Scatter name="이상값" data={outliers} fill="#ef4444" opacity={0.85} />
+          <Scatter data={normal} fill="#0ea5e9" opacity={0.45} />
+          <Scatter data={outliers} fill="#ef4444" opacity={0.85} />
         </ScatterChart>
       </ResponsiveContainer>
+      {/* 커스텀 범례 */}
+      <div style={{ display: "flex", gap: 20, justifyContent: "center", paddingTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569" }}>
+          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#0ea5e9", display: "inline-block" }} />
+          정상
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#475569" }}>
+          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#ef4444", display: "inline-block" }} />
+          이상값
+        </div>
+      </div>
     </ChartWrapper>
   );
 }
